@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>キングスカップ (King's Cup)</title>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --gold: #f59e0b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      color: var(--gold);
+      font-size: 1.8rem;
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.05);
+      padding: 8px 16px;
+      border-radius: 20px;
+    }
+
+    /* メインカード表示エリア */
+    .card-container {
+      width: 100%;
+      max-width: 340px;
+      height: 460px;
+      perspective: 1000px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .card.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px;
+      border: 3px solid var(--gold);
+    }
+
+    /* 裏面 (山札) */
+    .card-back {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .card-back-pattern {
+      border: 2px dashed var(--gold);
+      width: 90%;
+      height: 90%;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .crown-icon {
+      font-size: 4rem;
+      margin-bottom: 12px;
+    }
+
+    /* 表面 (引いたカード) */
+    .card-front {
+      background: #ffffff;
+      color: #1e293b;
+      transform: rotateY(180deg);
+    }
+
+    .card-front.red { color: #dc2626; }
+    .card-front.black { color: #1e293b; }
+
+    .card-header, .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1.8rem;
+      font-weight: bold;
+    }
+
+    .card-footer {
+      transform: rotate(180deg);
+    }
+
+    .card-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      flex-grow: 1;
+      padding: 10px;
+    }
+
+    .action-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 12px;
+      line-height: 1.3;
+      color: #0f172a;
+    }
+
+    .action-desc {
+      font-size: 0.95rem;
+      color: #475569;
+      line-height: 1.4;
+    }
+
+    .badge {
+      background: #fef3c7;
+      color: #92400e;
+      font-size: 0.8rem;
+      padding: 4px 12px;
+      border-radius: 12px;
+      margin-top: 8px;
+      font-weight: bold;
+    }
+
+    /* コントロール */
+    .controls {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      max-width: 340px;
+    }
+
+    button {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-draw {
+      background: var(--gold);
+      color: #0f172a;
+    }
+
+    .btn-draw:hover {
+      background: #d97706;
+    }
+
+    .btn-reset {
+      background: #334155;
+      color: var(--text);
+    }
+
+    .btn-reset:hover {
+      background: #475569;
+    }
+
+    /* ルール一覧モーダル */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      z-index: 100;
+    }
+
+    .modal-content {
+      background: #1e293b;
+      border-radius: 16px;
+      max-width: 400px;
+      max-height: 80vh;
+      width: 100%;
+      overflow-y: auto;
+      padding: 20px;
+      border: 1px solid var(--gold);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .rule-list {
+      list-style: none;
+    }
+
+    .rule-item {
+      padding: 8px 0;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      gap: 12px;
+    }
+
+    .rule-num {
+      color: var(--gold);
+      font-weight: bold;
+      min-width: 24px;
+    }
+
+    .btn-close {
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      width: auto;
+      padding: 0;
+    }
+
+    .btn-rule {
+      margin-top: 12px;
+      background: transparent;
+      border: 1px solid #475569;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>KING'S CUP</h1>
+    <p style="font-size: 0.8rem; color: var(--text-muted);">タップしてカードを引く</p>
+  </header>
+
+  <div class="status-bar">
+    <span>残り: <strong id="remaining-count" style="color:var(--gold);">54</strong> 枚</span>
+    <span>キング(13): <strong id="king-count" style="color:var(--gold);">0</strong>/4</span>
+    <span>JOKER: <strong id="joker-count" style="color:var(--gold);">0</strong>/2</span>
+  </div>
+
+  <div class="card-container" id="card-container" onclick="drawCard()">
+    <div class="card" id="card">
+      <!-- 裏面 -->
+      <div class="card-face card-back">
+        <div class="card-back-pattern">
+          <div class="crown-icon">👑</div>
+          <p style="letter-spacing: 2px; color: var(--gold); font-weight: bold;">タップして引く</p>
+        </div>
+      </div>
+
+      <!-- 表面 -->
+      <div class="card-face card-front" id="card-front">
+        <div class="card-header">
+          <span id="card-rank-top">A</span>
+          <span id="card-suit-top">♠</span>
+        </div>
+        <div class="card-body">
+          <div class="action-title" id="action-title">1、引いた人以外がグイ</div>
+          <div class="action-desc" id="action-desc">引いたプレイヤー以外の全員がお酒を飲みます。</div>
+          <div class="badge" id="special-badge" style="display:none;"></div>
+        </div>
+        <div class="card-footer">
+          <span id="card-rank-bottom">A</span>
+          <span id="card-suit-bottom">♠</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn-draw" onclick="drawCard()">カードを引く</button>
+    <button class="btn-reset" onclick="resetGame()">リセット</button>
+  </div>
+
+  <button class="btn-rule" onclick="toggleModal(true)">📖 ルール一覧を見る</button>
+
+  <!-- ルールモーダル -->
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>キングスカップ ルール</h3>
+        <button class="btn-close" onclick="toggleModal(false)">✕</button>
+      </div>
+      <ul class="rule-list" id="rule-list"></ul>
+    </div>
+  </div>
+
+  <script>
+    const RULES = {
+      1: { title: "引いた人以外がグイ", desc: "カードを引いた人以外の「全員」がお酒を飲みます。" },
+      2: { title: "指名された人がグイ", desc: "引いた人が指名した「1人」がお酒を飲みます。" },
+      3: { title: "引いた人がグイ", desc: "カードを引いた「本人」がお酒を飲みます。" },
+      4: { title: "女子がグイ", desc: "参加している「女性全員」がお酒を飲みます。" },
+      5: { title: "引いた人の左右がグイ", desc: "引いた人の「両隣（左隣と右隣）」がお酒を飲みます。" },
+      6: { title: "男子がグイ", desc: "参加している「男性全員」がお酒を飲みます。" },
+      7: { title: "片手を上げて遅い人グイ", desc: "カードが出た瞬間、全員片手を上げます。一番遅かった人が飲みます。" },
+      8: { title: "連帯責任の相棒を決める", desc: "相棒を1人指定。今後どちらかが飲む時は相棒も一緒に飲みます。（※新しく出たら前の相棒は解消）" },
+      9: { title: "好きなゲーム", desc: "山手線ゲームや古今東西など、好きなミニゲームを開始します。負けた人が飲みます。" },
+      10: { title: "次のターン3枚引く", desc: "次にカードを引く人は、連続で3枚カードを引かなければなりません。" },
+      11: { title: "好きなルール作る", desc: "自由なルールを1つ追加できます（例：「語尾に『にゃー』をつける」「語尾にカタカナ禁止」等）。" },
+      12: { title: "クエスチョンマスター", desc: "この人に質問されて答えてしまった人は飲みます。（※次の12が出たら前のマスターは解消）" },
+      13: { title: "4枚目を引いた人がショットをグイ", desc: "1〜3枚目は安全。4枚目（最後の13）を引いた人がキングスカップ（ショット）を一気に飲み干します！" },
+      "JOKER": { title: "2枚目引いたらショット2杯", desc: "1枚目はセーフ！2枚目のJOKERを引いてしまった人はショット2杯です！" }
+    };
+
+    const SUITS = ['♠', '♥', '♦', '♣'];
+    const RANKS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+
+    let deck = [];
+    let drawnCards = [];
+    let kingCount = 0;
+    let jokerCount = 0;
+    let isFlipped = false;
+
+    function initDeck() {
+      deck = [];
+      drawnCards = [];
+      kingCount = 0;
+      jokerCount = 0;
+
+      for (let suit of SUITS) {
+        for (let rank of RANKS) {
+          deck.push({ suit, rank, isJoker: false });
+        }
+      }
+      deck.push({ suit: '🃏', rank: 'JOKER', isJoker: true });
+      deck.push({ suit: '🃏', rank: 'JOKER', isJoker: true });
+
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+
+      updateStatus();
+    }
+
+    function updateStatus() {
+      document.getElementById('remaining-count').innerText = deck.length;
+      document.getElementById('king-count').innerText = kingCount;
+      document.getElementById('joker-count').innerText = jokerCount;
+    }
+
+    function drawCard() {
+      if (deck.length === 0) {
+        alert("山札がなくなりました！リセットして新しいゲームを開始します。");
+        resetGame();
+        return;
+      }
+
+      const cardElem = document.getElementById('card');
+      
+      if (isFlipped) {
+        cardElem.classList.remove('flipped');
+        isFlipped = false;
+        setTimeout(() => {
+          executeDraw();
+        }, 300);
+      } else {
+        executeDraw();
+      }
+    }
+
+    function executeDraw() {
+      const card = deck.pop();
+      drawnCards.push(card);
+
+      if (card.rank === 13) kingCount++;
+      if (card.isJoker) jokerCount++;
+
+      updateCardUI(card);
+      updateStatus();
+
+      const cardElem = document.getElementById('card');
+      cardElem.classList.add('flipped');
+      isFlipped = true;
+    }
+
+    function updateCardUI(card) {
+      const frontElem = document.getElementById('card-front');
+      const isRed = card.suit === '♥' || card.suit === '♦';
+
+      frontElem.className = `card-face card-front ${isRed ? 'red' : 'black'}`;
+
+      let displayRank = card.rank;
+      if (card.rank === 1) displayRank = 'A';
+      if (card.rank === 11) displayRank = 'J';
+      if (card.rank === 12) displayRank = 'Q';
+      if (card.rank === 13) displayRank = 'K';
+
+      document.getElementById('card-rank-top').innerText = displayRank;
+      document.getElementById('card-suit-top').innerText = card.suit;
+      document.getElementById('card-rank-bottom').innerText = displayRank;
+      document.getElementById('card-suit-bottom').innerText = card.suit;
+
+      const rule = RULES[card.rank];
+      document.getElementById('action-title').innerText = `${displayRank}: ${rule.title}`;
+      document.getElementById('action-desc').innerText = rule.desc;
+
+      const badge = document.getElementById('special-badge');
+      if (card.rank === 13) {
+        badge.style.display = 'inline-block';
+        badge.innerText = `👑 キング ${kingCount}/4 枚目`;
+      } else if (card.isJoker) {
+        badge.style.display = 'inline-block';
+        badge.innerText = `🃏 JOKER ${jokerCount}/2 枚目`;
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    function resetGame() {
+      const cardElem = document.getElementById('card');
+      cardElem.classList.remove('flipped');
+      isFlipped = false;
+      setTimeout(() => {
+        initDeck();
+      }, 300);
+    }
+
+    function toggleModal(show) {
+      document.getElementById('modal').style.display = show ? 'flex' : 'none';
+    }
+
+    function renderRulesModal() {
+      const list = document.getElementById('rule-list');
+      list.innerHTML = '';
+      for (let key in RULES) {
+        const li = document.createElement('li');
+        li.className = 'rule-item';
+        let label = key;
+        if (key == 1) label = 'A';
+        if (key == 11) label = 'J';
+        if (key == 12) label = 'Q';
+        if (key == 13) label = 'K';
+
+        li.innerHTML = `
+          <div class="rule-num">${label}</div>
+          <div>
+            <strong style="color:var(--text);">${RULES[key].title}</strong>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">${RULES[key].desc}</p>
+          </div>
+        `;
+        list.appendChild(li);
+      }
+    }
+
+    initDeck();
+    renderRulesModal();
+  </script>
+</body>
+</html>
